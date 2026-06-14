@@ -53,6 +53,7 @@ Browser (admin panel)
 ```
 
 **Aturan penting:**
+
 - ESP32 **hanya menulis** ke RTDB. ESP32 tidak pernah membaca Firestore.
 - Browser **hanya membaca** dari RTDB. Browser tidak pernah menulis ke RTDB.
 - Semua data Firestore diakses browser melalui API route Next.js (menggunakan Firebase Admin SDK di sisi server), **tidak pernah langsung** dari client.
@@ -108,8 +109,8 @@ Dashboard membaca path ini via listener `onValue` yang aktif sepanjang halaman t
 
 **Root**
 
-| Field | Tipe     | Satuan        | Keterangan |
-|-------|----------|---------------|------------|
+| Field | Tipe               | Satuan                 | Keterangan                                                                                                                                                        |
+| ----- | ------------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ts`  | `number` (integer) | Unix timestamp (detik) | Waktu pengiriman data dari ESP32. **Kritis:** jika `Date.now()/1000 - ts > 30`, dashboard menampilkan badge **Offline**. Selalu isi dengan waktu NTP yang akurat. |
 
 > **Peringatan:** Field `ts` adalah satu-satunya cara dashboard mendeteksi apakah ESP32 masih hidup. Jika ESP32 tidak memperbarui `ts` dalam 30 detik, seluruh dashboard beralih ke status **Offline**. Pastikan ESP32 sinkron dengan NTP sebelum mulai mengirim data.
@@ -118,39 +119,40 @@ Dashboard membaca path ini via listener `onValue` yang aktif sepanjang halaman t
 
 **Sub-objek `plts` — Panel Surya (PLTS)**
 
-| Field  | Tipe     | Satuan | Rentang Normal | Keterangan |
-|--------|----------|--------|----------------|------------|
-| `v`    | `number` | Volt   | 0 – 60 V       | Tegangan output panel surya |
-| `i`    | `number` | Ampere | 0 – 30 A       | Arus output panel surya |
-| `p`    | `number` | Watt   | 0 – 1800 W     | Daya output panel surya (`v × i`) |
+| Field  | Tipe     | Satuan | Rentang Normal | Keterangan                           |
+| ------ | -------- | ------ | -------------- | ------------------------------------ |
+| `v`    | `number` | Volt   | 0 – 60 V       | Tegangan output panel surya          |
+| `i`    | `number` | Ampere | 0 – 30 A       | Arus output panel surya              |
+| `p`    | `number` | Watt   | 0 – 1800 W     | Daya output panel surya (`v × i`)    |
 | `irr`  | `number` | W/m²   | 0 – 1200 W/m²  | Irradiansi matahari dari pyranometer |
-| `temp` | `number` | °C     | 15 – 85 °C     | Suhu permukaan panel |
+| `temp` | `number` | °C     | 15 – 85 °C     | Suhu permukaan panel                 |
 
 ---
 
 **Sub-objek `pltb` — Turbin Angin (PLTB)**
 
-| Field  | Tipe     | Satuan | Rentang Normal | Keterangan |
-|--------|----------|--------|----------------|------------|
-| `v`    | `number` | Volt   | 0 – 48 V       | Tegangan output turbin |
-| `i`    | `number` | Ampere | 0 – 20 A       | Arus output turbin |
-| `p`    | `number` | Watt   | 0 – 960 W      | Daya output turbin (`v × i`) |
+| Field  | Tipe     | Satuan | Rentang Normal | Keterangan                      |
+| ------ | -------- | ------ | -------------- | ------------------------------- |
+| `v`    | `number` | Volt   | 0 – 48 V       | Tegangan output turbin          |
+| `i`    | `number` | Ampere | 0 – 20 A       | Arus output turbin              |
+| `p`    | `number` | Watt   | 0 – 960 W      | Daya output turbin (`v × i`)    |
 | `wind` | `number` | m/s    | 0 – 25 m/s     | Kecepatan angin dari anemometer |
-| `rpm`  | `number` | RPM    | 0 – 600 RPM    | Kecepatan putar rotor turbin |
+| `rpm`  | `number` | RPM    | 0 – 600 RPM    | Kecepatan putar rotor turbin    |
 
 ---
 
 **Sub-objek `batt` — Baterai (BESS)**
 
-| Field   | Tipe     | Satuan | Rentang Normal | Keterangan |
-|---------|----------|--------|----------------|------------|
-| `v`     | `number` | Volt   | 42 – 58 V      | Tegangan terminal baterai |
+| Field   | Tipe     | Satuan | Rentang Normal | Keterangan                                                                                                        |
+| ------- | -------- | ------ | -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `v`     | `number` | Volt   | 42 – 58 V      | Tegangan terminal baterai                                                                                         |
 | `i`     | `number` | Ampere | -100 – 100 A   | Arus baterai. **Negatif = discharge (baterai memberi daya ke beban). Positif = charging (baterai sedang diisi).** |
-| `p_in`  | `number` | Watt   | 0 – 5000 W     | Daya masuk ke baterai (saat charging). Isi `0.0` jika sedang discharge. |
-| `p_out` | `number` | Watt   | 0 – 5000 W     | Daya keluar dari baterai ke beban (saat discharge). Isi `0.0` jika sedang charging. |
-| `soc`   | `number` | %      | 0 – 100        | State of Charge baterai. Nilai harus antara 0 dan 100 (inklusif). |
+| `p_in`  | `number` | Watt   | 0 – 5000 W     | Daya masuk ke baterai (saat charging). Isi `0.0` jika sedang discharge.                                           |
+| `p_out` | `number` | Watt   | 0 – 5000 W     | Daya keluar dari baterai ke beban (saat discharge). Isi `0.0` jika sedang charging.                               |
+| `soc`   | `number` | %      | 0 – 100        | State of Charge baterai. Nilai harus antara 0 dan 100 (inklusif).                                                 |
 
 > **Peringatan — Arah arus `batt.i`:**
+>
 > - `batt.i = -8.5` artinya baterai sedang **discharge** (mengeluarkan daya ke beban).
 > - `batt.i = +12.0` artinya baterai sedang **charging** (menerima daya dari PLTS/PLTB).
 > - Dashboard menggunakan tanda ini untuk menampilkan arah panah pada power flow diagram. Pastikan BMS atau sensor arus Anda dikonfigurasi dengan polaritas yang benar.
@@ -159,20 +161,20 @@ Dashboard membaca path ini via listener `onValue` yang aktif sepanjang halaman t
 
 **Sub-objek `load` — Beban**
 
-| Field | Tipe     | Satuan | Rentang Normal | Keterangan |
-|-------|----------|--------|----------------|------------|
+| Field | Tipe     | Satuan | Rentang Normal | Keterangan               |
+| ----- | -------- | ------ | -------------- | ------------------------ |
 | `v`   | `number` | Volt   | 200 – 240 V    | Tegangan sisi beban (AC) |
-| `i`   | `number` | Ampere | 0 – 30 A       | Arus beban |
-| `p`   | `number` | Watt   | 0 – 6000 W     | Daya total beban |
+| `i`   | `number` | Ampere | 0 – 30 A       | Arus beban               |
+| `p`   | `number` | Watt   | 0 – 6000 W     | Daya total beban         |
 
 ---
 
 **Sub-objek `sys` — Status Sistem**
 
-| Field    | Tipe     | Nilai Valid                    | Keterangan |
-|----------|----------|--------------------------------|------------|
-| `mode`   | `string` | `"auto"` \| `"manual"`         | Mode operasi sistem. `auto` = MPPT/kontroler otomatis aktif. `manual` = operator mengendalikan secara manual. |
-| `status` | `string` | `"normal"` \| `"warning"` \| `"fault"` | Status kesehatan sistem secara keseluruhan. `fault` akan memicu tampilan alert di dashboard. |
+| Field    | Tipe     | Nilai Valid                            | Keterangan                                                                                                    |
+| -------- | -------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `mode`   | `string` | `"auto"` \| `"manual"`                 | Mode operasi sistem. `auto` = MPPT/kontroler otomatis aktif. `manual` = operator mengendalikan secara manual. |
+| `status` | `string` | `"normal"` \| `"warning"` \| `"fault"` | Status kesehatan sistem secara keseluruhan. `fault` akan memicu tampilan alert di dashboard.                  |
 
 ---
 
@@ -181,6 +183,7 @@ Dashboard membaca path ini via listener `onValue` yang aktif sepanjang halaman t
 Menyimpan rekam jejak telemetri per hari. Digunakan oleh halaman **Historis** pada dashboard.
 
 **Format path:**
+
 - `{date}` — tanggal dalam format `YYYY-MM-DD` berdasarkan **zona waktu WIB (UTC+7)**. Contoh: `2026-06-15`.
 - `{epoch}` — Unix timestamp dalam detik, dijadikan **key dokumen** (bukan nilai field). Contoh: `1749926700`.
 
@@ -188,6 +191,7 @@ Menyimpan rekam jejak telemetri per hari. Digunakan oleh halaman **Historis** pa
 > Gunakan waktu lokal WIB (UTC+7) untuk membentuk string tanggal, **bukan UTC**. Pukul 00:30 WIB = 17:30 UTC hari sebelumnya. Jika salah zona waktu, data antara pukul 00:00–07:00 WIB akan masuk ke bucket tanggal yang salah dan tidak akan muncul di grafik.
 
 **Cara menulis:**
+
 - Gunakan `PUT` (bukan `POST`/`PUSH`) ke path lengkap `/history/{date}/{epoch}`.
 - Ini memastikan epoch menjadi **key** di objek JSON, bukan ID acak yang dibuat Firebase.
 - Nilai payload di bawah node epoch adalah objek datar (flat object), **tanpa field `epoch`** — epoch sudah ada sebagai key.
@@ -231,27 +235,27 @@ Menyimpan rekam jejak telemetri per hari. Digunakan oleh halaman **Historis** pa
 
 #### Definisi Field History Point
 
-| Field        | Tipe     | Satuan | Keterangan |
-|--------------|----------|--------|------------|
-| `plts_p`     | `number` | Watt   | Daya output panel surya saat interval ini |
-| `plts_irr`   | `number` | W/m²   | Irradiansi matahari |
-| `plts_temp`  | `number` | °C     | Suhu panel surya |
-| `pltb_p`     | `number` | Watt   | Daya output turbin angin |
-| `pltb_wind`  | `number` | m/s    | Kecepatan angin |
-| `pltb_rpm`   | `number` | RPM    | Kecepatan rotor turbin |
-| `batt_p`     | `number` | Watt   | Daya baterai. **Negatif = discharge, positif = charging** |
-| `batt_soc`   | `number` | %      | State of Charge (0–100) |
-| `batt_v`     | `number` | Volt   | Tegangan terminal baterai |
-| `batt_i`     | `number` | Ampere | Arus baterai. **Negatif = discharge, positif = charging** |
-| `load_p`     | `number` | Watt   | Daya total beban |
+| Field       | Tipe     | Satuan | Keterangan                                                |
+| ----------- | -------- | ------ | --------------------------------------------------------- |
+| `plts_p`    | `number` | Watt   | Daya output panel surya saat interval ini                 |
+| `plts_irr`  | `number` | W/m²   | Irradiansi matahari                                       |
+| `plts_temp` | `number` | °C     | Suhu panel surya                                          |
+| `pltb_p`    | `number` | Watt   | Daya output turbin angin                                  |
+| `pltb_wind` | `number` | m/s    | Kecepatan angin                                           |
+| `pltb_rpm`  | `number` | RPM    | Kecepatan rotor turbin                                    |
+| `batt_p`    | `number` | Watt   | Daya baterai. **Negatif = discharge, positif = charging** |
+| `batt_soc`  | `number` | %      | State of Charge (0–100)                                   |
+| `batt_v`    | `number` | Volt   | Tegangan terminal baterai                                 |
+| `batt_i`    | `number` | Ampere | Arus baterai. **Negatif = discharge, positif = charging** |
+| `load_p`    | `number` | Watt   | Daya total beban                                          |
 
 #### Interval Pengiriman yang Direkomendasikan
 
-| Interval | Titik per hari | Kuota RTDB/hari | Keterangan |
-|----------|----------------|-----------------|------------|
-| 1 menit  | 1.440          | Sedang          | Presisi tinggi, cocok untuk analisis detail |
+| Interval | Titik per hari | Kuota RTDB/hari | Keterangan                                            |
+| -------- | -------------- | --------------- | ----------------------------------------------------- |
+| 1 menit  | 1.440          | Sedang          | Presisi tinggi, cocok untuk analisis detail           |
 | 2 menit  | 720            | Rendah          | **Rekomendasi umum** — keseimbangan presisi dan kuota |
-| 5 menit  | 288            | Sangat rendah   | Sama dengan batas render dashboard (288 titik) |
+| 5 menit  | 288            | Sangat rendah   | Sama dengan batas render dashboard (288 titik)        |
 
 > **Catatan Downsampling:** Dashboard secara otomatis mengurangi data ke maksimum **288 titik** sebelum ditampilkan di grafik (setara 1 titik per 5 menit untuk data 24 jam). Jika Anda mengirim data setiap 1 menit, data tetap tersimpan lengkap di RTDB — hanya tampilannya yang di-downsample. Ini tidak menghapus data asli.
 
@@ -281,6 +285,7 @@ Tempel rules ini di **Realtime Database > Rules** di Firebase Console.
 ```
 
 > **Penjelasan:**
+>
 > - `".read": true` pada `/live` dan `/history` — semua client (termasuk browser tanpa login) dapat membaca data telemetri. Jika ingin membatasi hanya pengguna terautentikasi, ganti dengan `"auth != null"`.
 > - `".write": false` di semua path — tidak ada client web yang dapat menulis. ESP32 menulis menggunakan **Database Secret** atau **service account** yang dikirim sebagai header autentikasi, sehingga melewati Security Rules (operasi admin).
 > - Root `.read: false` dan `.write: false` sebagai default fallback.
@@ -320,15 +325,15 @@ Menyimpan konfigurasi Firebase client SDK yang digunakan oleh dashboard.
 
 **Document path:** `app_settings/firebase_config`
 
-| Field          | Tipe     | Format                              | Keterangan |
-|----------------|----------|-------------------------------------|------------|
-| `projectId`    | `string` | Plaintext                           | ID project Firebase. Satu-satunya field yang tidak dienkripsi. |
-| `apiKey`       | `string` | `iv_hex:authTag_hex:ciphertext_hex` | Dienkripsi AES-256-GCM |
-| `authDomain`   | `string` | `iv_hex:authTag_hex:ciphertext_hex` | Dienkripsi AES-256-GCM |
-| `databaseURL`  | `string` | `iv_hex:authTag_hex:ciphertext_hex` | Dienkripsi AES-256-GCM |
-| `storageBucket`| `string` | `iv_hex:authTag_hex:ciphertext_hex` | Dienkripsi AES-256-GCM |
-| `appId`        | `string` | `iv_hex:authTag_hex:ciphertext_hex` | Dienkripsi AES-256-GCM |
-| `updatedAt`    | Timestamp | Firestore ServerTimestamp          | Otomatis diisi saat update |
+| Field           | Tipe      | Format                              | Keterangan                                                     |
+| --------------- | --------- | ----------------------------------- | -------------------------------------------------------------- |
+| `projectId`     | `string`  | Plaintext                           | ID project Firebase. Satu-satunya field yang tidak dienkripsi. |
+| `apiKey`        | `string`  | `iv_hex:authTag_hex:ciphertext_hex` | Dienkripsi AES-256-GCM                                         |
+| `authDomain`    | `string`  | `iv_hex:authTag_hex:ciphertext_hex` | Dienkripsi AES-256-GCM                                         |
+| `databaseURL`   | `string`  | `iv_hex:authTag_hex:ciphertext_hex` | Dienkripsi AES-256-GCM                                         |
+| `storageBucket` | `string`  | `iv_hex:authTag_hex:ciphertext_hex` | Dienkripsi AES-256-GCM                                         |
+| `appId`         | `string`  | `iv_hex:authTag_hex:ciphertext_hex` | Dienkripsi AES-256-GCM                                         |
+| `updatedAt`     | Timestamp | Firestore ServerTimestamp           | Otomatis diisi saat update                                     |
 
 **Contoh dokumen (nilai terenkripsi disingkat):**
 
@@ -356,21 +361,21 @@ Menyimpan nilai ambang batas alarm untuk setiap metrik yang dipantau.
 
 **Document ID** = nama metrik (fixed, bukan auto-generated).
 
-| Document ID       | Metrik yang dipantau        | Unit default | Nilai default wajar |
-|-------------------|-----------------------------|--------------|---------------------|
-| `soc_min`         | State of Charge minimum     | %            | 20                  |
-| `panel_temp_max`  | Suhu panel surya maksimum   | °C           | 75                  |
-| `load_p_max`      | Daya beban maksimum         | W            | 5000                |
-| `wind_max`        | Kecepatan angin maksimum    | m/s          | 20                  |
+| Document ID      | Metrik yang dipantau      | Unit default | Nilai default wajar |
+| ---------------- | ------------------------- | ------------ | ------------------- |
+| `soc_min`        | State of Charge minimum   | %            | 20                  |
+| `panel_temp_max` | Suhu panel surya maksimum | °C           | 75                  |
+| `load_p_max`     | Daya beban maksimum       | W            | 5000                |
+| `wind_max`       | Kecepatan angin maksimum  | m/s          | 20                  |
 
 **Struktur setiap dokumen:**
 
-| Field       | Tipe      | Keterangan |
-|-------------|-----------|------------|
-| `metric`    | `string`  | Nama metrik, sama dengan Document ID |
-| `value`     | `number`  | Nilai threshold |
-| `unit`      | `string`  | Satuan (%, °C, W, m/s) |
-| `enabled`   | `boolean` | Apakah alarm untuk metrik ini aktif |
+| Field       | Tipe      | Keterangan                             |
+| ----------- | --------- | -------------------------------------- |
+| `metric`    | `string`  | Nama metrik, sama dengan Document ID   |
+| `value`     | `number`  | Nilai threshold                        |
+| `unit`      | `string`  | Satuan (%, °C, W, m/s)                 |
+| `enabled`   | `boolean` | Apakah alarm untuk metrik ini aktif    |
 | `updatedAt` | Timestamp | Otomatis diisi oleh server saat update |
 
 **Contoh dokumen `thresholds/soc_min`:**
@@ -429,14 +434,14 @@ Menyimpan daftar contact person yang akan dihubungi saat terjadi alarm atau insi
 
 **Document ID** = auto-generated oleh Firestore.
 
-| Field       | Tipe      | Batasan              | Keterangan |
-|-------------|-----------|----------------------|------------|
-| `name`      | `string`  | maks 100 karakter    | Nama lengkap contact person |
-| `role`      | `string`  | maks 100 karakter    | Jabatan atau peran (contoh: "Teknisi Lapangan") |
-| `phone`     | `string`  | 8–20 karakter, format `+?[\d\s\-()\]+` | Nomor telepon/WhatsApp |
-| `isActive`  | `boolean` | —                    | Jika `false`, kontak tidak ditampilkan di dashboard |
-| `sortOrder` | `number`  | integer >= 0         | Urutan tampil — angka lebih kecil muncul lebih dulu |
-| `createdAt` | Timestamp | —                    | Otomatis diisi saat pertama dibuat |
+| Field       | Tipe      | Batasan                                | Keterangan                                          |
+| ----------- | --------- | -------------------------------------- | --------------------------------------------------- |
+| `name`      | `string`  | maks 100 karakter                      | Nama lengkap contact person                         |
+| `role`      | `string`  | maks 100 karakter                      | Jabatan atau peran (contoh: "Teknisi Lapangan")     |
+| `phone`     | `string`  | 8–20 karakter, format `+?[\d\s\-()\]+` | Nomor telepon/WhatsApp                              |
+| `isActive`  | `boolean` | —                                      | Jika `false`, kontak tidak ditampilkan di dashboard |
+| `sortOrder` | `number`  | integer >= 0                           | Urutan tampil — angka lebih kecil muncul lebih dulu |
+| `createdAt` | Timestamp | —                                      | Otomatis diisi saat pertama dibuat                  |
 
 **Contoh dokumen:**
 
@@ -461,17 +466,17 @@ Menyimpan laporan masalah yang dikirimkan oleh pengguna (viewer) melalui form di
 
 > **Peringatan:** Collection ini **tidak boleh ditulis langsung** dari client atau dari ESP32. Satu-satunya cara menulis adalah melalui `POST /api/reports`, yang memberlakukan rate limiting (5 permintaan per menit per IP) dan validasi input.
 
-| Field             | Tipe      | Nilai Valid / Batasan | Keterangan |
-|-------------------|-----------|-----------------------|------------|
-| `category`        | `string`  | `data_not_updating` \| `sensor_anomaly` \| `display_issue` \| `other` | Kategori laporan |
-| `description`     | `string`  | 10–2000 karakter      | Deskripsi masalah |
-| `reporterName`    | `string \| null` | maks 100 karakter, opsional | Nama pelapor (boleh anonim) |
-| `reporterContact` | `string \| null` | maks 100 karakter, opsional | Kontak pelapor |
-| `status`          | `string`  | `open` \| `in_progress` \| `resolved` | Status penanganan. Diisi `open` otomatis saat pertama dibuat. |
-| `adminNote`       | `string \| null` | maks 500 karakter | Catatan dari admin. `null` saat pertama dibuat. |
-| `routedTo`        | `string \| null` | maks 100 karakter | Nama/ID teknisi yang ditugaskan. `null` saat pertama dibuat. |
-| `createdAt`       | Timestamp | —                     | Otomatis diisi server saat laporan masuk |
-| `resolvedAt`      | Timestamp \| null | —               | Otomatis diisi server saat `status` diubah ke `resolved` |
+| Field             | Tipe              | Nilai Valid / Batasan                                                 | Keterangan                                                    |
+| ----------------- | ----------------- | --------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `category`        | `string`          | `data_not_updating` \| `sensor_anomaly` \| `display_issue` \| `other` | Kategori laporan                                              |
+| `description`     | `string`          | 10–2000 karakter                                                      | Deskripsi masalah                                             |
+| `reporterName`    | `string \| null`  | maks 100 karakter, opsional                                           | Nama pelapor (boleh anonim)                                   |
+| `reporterContact` | `string \| null`  | maks 100 karakter, opsional                                           | Kontak pelapor                                                |
+| `status`          | `string`          | `open` \| `in_progress` \| `resolved`                                 | Status penanganan. Diisi `open` otomatis saat pertama dibuat. |
+| `adminNote`       | `string \| null`  | maks 500 karakter                                                     | Catatan dari admin. `null` saat pertama dibuat.               |
+| `routedTo`        | `string \| null`  | maks 100 karakter                                                     | Nama/ID teknisi yang ditugaskan. `null` saat pertama dibuat.  |
+| `createdAt`       | Timestamp         | —                                                                     | Otomatis diisi server saat laporan masuk                      |
+| `resolvedAt`      | Timestamp \| null | —                                                                     | Otomatis diisi server saat `status` diubah ke `resolved`      |
 
 **Contoh dokumen (baru masuk):**
 
@@ -807,13 +812,13 @@ void loop() {
 
 #### Catatan Penting Kode di Atas
 
-| Topik | Penjelasan |
-|-------|------------|
-| **Tanggal WIB** | `getDateWib()` menambahkan 7 jam ke waktu UTC sebelum memformat string. Ini kritis agar data tengah malam tidak masuk ke bucket tanggal yang salah. |
-| **Format epoch** | `String((long)epoch)` memastikan epoch dicetak sebagai integer penuh tanpa desimal, karena epoch menjadi key di RTDB. |
-| **Polaritas batt.i** | Pastikan sensor arus Anda dikonfigurasi agar nilai **negatif saat discharge**. Jika terbalik, ubah tanda di pembacaan sensor, bukan di kode pengiriman. |
-| **Retry WiFi** | Loop memeriksa `WiFi.status()` setiap iterasi. Jika putus, `connectWiFi()` dipanggil ulang. Data selama putus koneksi akan hilang (tidak ada antrian lokal). |
-| **NTP** | `configTime(0, 0, ...)` menggunakan offset 0 (UTC). Offset WIB dihitung manual di `getDateWib()` agar epoch yang tersimpan di RTDB selalu UTC. |
+| Topik                | Penjelasan                                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Tanggal WIB**      | `getDateWib()` menambahkan 7 jam ke waktu UTC sebelum memformat string. Ini kritis agar data tengah malam tidak masuk ke bucket tanggal yang salah.          |
+| **Format epoch**     | `String((long)epoch)` memastikan epoch dicetak sebagai integer penuh tanpa desimal, karena epoch menjadi key di RTDB.                                        |
+| **Polaritas batt.i** | Pastikan sensor arus Anda dikonfigurasi agar nilai **negatif saat discharge**. Jika terbalik, ubah tanda di pembacaan sensor, bukan di kode pengiriman.      |
+| **Retry WiFi**       | Loop memeriksa `WiFi.status()` setiap iterasi. Jika putus, `connectWiFi()` dipanggil ulang. Data selama putus koneksi akan hilang (tidak ada antrian lokal). |
+| **NTP**              | `configTime(0, 0, ...)` menggunakan offset 0 (UTC). Offset WIB dihitung manual di `getDateWib()` agar epoch yang tersimpan di RTDB selalu UTC.               |
 | **HTTP PUT vs PUSH** | `http.PUT()` pada path spesifik `epoch` menjamin epoch menjadi key. Jangan gunakan `http.POST()` ke `/history/{date}` karena Firebase akan membuat key acak. |
 
 ---
@@ -1034,6 +1039,7 @@ curl -X PUT \
 ```
 
 Kelima titik di atas merepresentasikan:
+
 - `1749902400` — pukul ~01:00 WIB (malam, tidak ada matahari, angin lemah, baterai discharge ke beban kecil)
 - `1749910800` — pukul ~03:00 WIB (dini hari, irradiansi mulai ada, baterai charging)
 - `1749920400` — pukul ~11:00 WIB (puncak produksi siang, baterai discharge ke beban besar)
@@ -1044,12 +1050,12 @@ Kelima titik di atas merepresentasikan:
 
 ## Referensi Cepat
 
-| Kebutuhan | Solusi |
-|-----------|--------|
-| ESP32 tidak muncul di RTDB | Periksa `DB_SECRET`, RTDB URL, dan Security Rules |
-| Badge Offline terus muncul | Field `ts` tidak diperbarui atau nilai `ts` tidak akurat (cek NTP) |
-| Data history masuk tanggal salah | Periksa fungsi `getDateWib()` — pastikan offset UTC+7 diterapkan |
-| Nilai `batt.soc` ditolak Zod | Nilai harus antara 0–100 (inklusif), bukan di luar rentang |
+| Kebutuhan                            | Solusi                                                                                |
+| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| ESP32 tidak muncul di RTDB           | Periksa `DB_SECRET`, RTDB URL, dan Security Rules                                     |
+| Badge Offline terus muncul           | Field `ts` tidak diperbarui atau nilai `ts` tidak akurat (cek NTP)                    |
+| Data history masuk tanggal salah     | Periksa fungsi `getDateWib()` — pastikan offset UTC+7 diterapkan                      |
+| Nilai `batt.soc` ditolak Zod         | Nilai harus antara 0–100 (inklusif), bukan di luar rentang                            |
 | Field terenkripsi di Firestore rusak | Jangan edit manual — hanya edit via admin panel atau `PUT /api/admin/firebase-config` |
-| Dashboard tidak bisa baca Firestore | Normal dan diharapkan — Firestore hanya dibaca via API routes server |
-| Power flow diagram salah arah | Periksa polaritas `batt.i` — negatif harus discharge |
+| Dashboard tidak bisa baca Firestore  | Normal dan diharapkan — Firestore hanya dibaca via API routes server                  |
+| Power flow diagram salah arah        | Periksa polaritas `batt.i` — negatif harus discharge                                  |

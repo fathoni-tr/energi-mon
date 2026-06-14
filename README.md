@@ -171,14 +171,14 @@ Firebase client config sudah ada di Firestore dari langkah bootstrap, sehingga t
 
 ## Scripts
 
-| Script | Perintah | Keterangan |
-|--------|----------|------------|
-| Dev server | `bun run dev` | Jalankan Next.js di localhost:3000 |
-| Production build | `bun run build` | Build harus hijau sebelum deploy |
-| Typecheck | `bun run typecheck` | `tsc --noEmit` — wajib hijau |
-| Lint | `bun run lint` | ESLint via `next lint` |
-| Test | `bun run test` | Vitest |
-| Set admin claim | `bun run set-admin-claim -- email@example.com` | Set custom claim `admin:true` di Firebase Auth |
+| Script           | Perintah                                                  | Keterangan                                                        |
+| ---------------- | --------------------------------------------------------- | ----------------------------------------------------------------- |
+| Dev server       | `bun run dev`                                             | Jalankan Next.js di localhost:3000                                |
+| Production build | `bun run build`                                           | Build harus hijau sebelum deploy                                  |
+| Typecheck        | `bun run typecheck`                                       | `tsc --noEmit` — wajib hijau                                      |
+| Lint             | `bun run lint`                                            | ESLint via `next lint`                                            |
+| Test             | `bun run test`                                            | Vitest                                                            |
+| Set admin claim  | `bun run set-admin-claim -- email@example.com`            | Set custom claim `admin:true` di Firebase Auth                    |
 | Bootstrap config | `bun run bootstrap-config -- firebase-client-config.json` | Simpan Firebase client config ke Firestore (enkripsi AES-256-GCM) |
 
 **Definisi selesai:** `typecheck` + `lint` + `build` semuanya hijau.
@@ -233,6 +233,7 @@ src/
 ## Struktur Data Firebase
 
 Lihat [`docs/FIREBASE_DATA_STRUCTURE.md`](docs/FIREBASE_DATA_STRUCTURE.md) untuk dokumentasi lengkap:
+
 - Format payload RTDB `/live` dan `/history/{date}/{epoch}`
 - Skema koleksi Firestore
 - Contoh sketch ESP32
