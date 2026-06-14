@@ -38,6 +38,9 @@
   "engines": {
     "node": "22.x"
   },
+  "overrides": {
+    "jwks-rsa": "^3"
+  },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
