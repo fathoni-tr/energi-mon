@@ -9,6 +9,9 @@ Dashboard monitoring energi real-time untuk sistem hybrid **PLTS** (Solar), **PL
 
 > Screenshot dashboard
 
+<img width="1862" height="1035" alt="Screenshot (1117)" src="https://github.com/user-attachments/assets/12a88795-3c08-4cb0-b6d9-61ee47e9263a" />
+<img width="1860" height="1029" alt="image" src="https://github.com/user-attachments/assets/fb0b14ca-d424-4928-ba43-3e1c2440c01c" />
+
 ---
 
 ## Fitur
