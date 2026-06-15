@@ -70,15 +70,15 @@ export interface BatteryEnergy {
 
 /**
  * Energi pengisian dan pengosongan baterai untuk rentang history.
- * Konvensi: `batt_p < 0` = pengisian, `batt_p > 0` = pengosongan.
+ * Konvensi: `batt_p > 0` = pengisian (charge), `batt_p < 0` = pengosongan (discharge).
  */
 export function batteryEnergy(history: HistoryPoint[]): BatteryEnergy {
   return history.reduce(
     (acc, h) => ({
       chargeKwh:
-        acc.chargeKwh + (Math.max(0, -h.batt_p) * INTERVAL_HOURS) / 1000,
+        acc.chargeKwh + (Math.max(0, h.batt_p) * INTERVAL_HOURS) / 1000,
       dischargeKwh:
-        acc.dischargeKwh + (Math.max(0, h.batt_p) * INTERVAL_HOURS) / 1000,
+        acc.dischargeKwh + (Math.max(0, -h.batt_p) * INTERVAL_HOURS) / 1000,
     }),
     { chargeKwh: 0, dischargeKwh: 0 },
   );

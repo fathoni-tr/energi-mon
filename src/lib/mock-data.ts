@@ -65,11 +65,12 @@ function generateHistory(): HistoryPoint[] {
     const pltb_rpm = Math.round((pltb_p / 300) * 560 + rand() * 20);
 
     const net = plts_p + pltb_p - load_p;
-    const batt_p = -net;
+    // Konvensi: batt_p > 0 = pengisian (surplus), < 0 = pengosongan (defisit).
+    const batt_p = net;
     const prevSoc = points.length > 0 ? points[points.length - 1].batt_soc : 78;
     const batt_soc = Math.min(
       100,
-      Math.max(10, prevSoc - (batt_p / 10000) * interval),
+      Math.max(10, prevSoc + (batt_p / 10000) * interval),
     );
     const batt_v = Math.round((48 + (batt_soc / 100) * 6) * 10) / 10;
     const batt_i = Math.round((batt_p / batt_v) * 10) / 10;

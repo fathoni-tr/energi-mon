@@ -184,11 +184,11 @@ Menyimpan rekam jejak telemetri per hari. Digunakan oleh halaman **Historis** pa
 
 **Format path:**
 
-- `{date}` — tanggal dalam format `YYYY-MM-DD` berdasarkan **zona waktu WIB (UTC+7)**. Contoh: `2026-06-15`.
+- `{date}` — tanggal dalam format `YYYY-MM-DD` berdasarkan **zona waktu WITA (UTC+8)** (lokasi Sabu Raijua). Contoh: `2026-06-15`.
 - `{epoch}` — Unix timestamp dalam detik, dijadikan **key dokumen** (bukan nilai field). Contoh: `1749926700`.
 
-> **Peringatan — Format Tanggal WIB:**
-> Gunakan waktu lokal WIB (UTC+7) untuk membentuk string tanggal, **bukan UTC**. Pukul 00:30 WIB = 17:30 UTC hari sebelumnya. Jika salah zona waktu, data antara pukul 00:00–07:00 WIB akan masuk ke bucket tanggal yang salah dan tidak akan muncul di grafik.
+> **Peringatan — Format Tanggal WITA:**
+> Gunakan waktu lokal WITA (UTC+8) untuk membentuk string tanggal, **bukan UTC**. Pukul 00:30 WITA = 16:30 UTC hari sebelumnya. Jika salah zona waktu, data antara pukul 00:00–08:00 WITA akan masuk ke bucket tanggal yang salah dan tidak akan muncul di grafik.
 
 **Cara menulis:**
 
@@ -579,8 +579,8 @@ const char* DB_SECRET       = "DATABASE_SECRET_ANDA_DI_SINI";
 const unsigned long LIVE_INTERVAL_MS    = 5000;   // 5 detik
 const unsigned long HISTORY_INTERVAL_MS = 120000; // 2 menit
 
-// Timezone WIB = UTC+7
-const long TZ_OFFSET_SECONDS = 7 * 3600;
+// Timezone WITA = UTC+8 (lokasi Sabu Raijua)
+const long TZ_OFFSET_SECONDS = 8 * 3600;
 
 unsigned long lastLiveSend    = 0;
 unsigned long lastHistorySend = 0;
@@ -614,12 +614,12 @@ time_t getEpoch() {
   return mktime(&timeinfo);
 }
 
-// ── Fungsi: bentuk string tanggal WIB "YYYY-MM-DD" ────────────────────────
-// PENTING: gunakan waktu WIB (UTC+7), bukan UTC
-String getDateWib() {
+// ── Fungsi: bentuk string tanggal WITA "YYYY-MM-DD" ───────────────────────
+// PENTING: gunakan waktu WITA (UTC+8), bukan UTC
+String getDateWita() {
   time_t now = time(nullptr);
-  time_t wib = now + TZ_OFFSET_SECONDS;  // tambah 7 jam
-  struct tm* t = gmtime(&wib);           // parse sebagai UTC (sudah di-offset)
+  time_t wita = now + TZ_OFFSET_SECONDS;  // tambah 8 jam
+  struct tm* t = gmtime(&wita);           // parse sebagai UTC (sudah di-offset)
 
   char buf[11];
   strftime(buf, sizeof(buf), "%Y-%m-%d", t);
@@ -797,7 +797,7 @@ void loop() {
   if (now - lastHistorySend >= HISTORY_INTERVAL_MS) {
     lastHistorySend = now;
     if (epoch > 0) {
-      String date    = getDateWib();
+      String date    = getDateWita();
       String path    = "/history/" + date + "/" + String((long)epoch);
       String payload = buildHistoryPayload();
       rtdbPut(path, payload);
@@ -814,11 +814,11 @@ void loop() {
 
 | Topik                | Penjelasan                                                                                                                                                   |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Tanggal WIB**      | `getDateWib()` menambahkan 7 jam ke waktu UTC sebelum memformat string. Ini kritis agar data tengah malam tidak masuk ke bucket tanggal yang salah.          |
+| **Tanggal WITA**     | `getDateWita()` menambahkan 8 jam ke waktu UTC sebelum memformat string. Ini kritis agar data tengah malam tidak masuk ke bucket tanggal yang salah.         |
 | **Format epoch**     | `String((long)epoch)` memastikan epoch dicetak sebagai integer penuh tanpa desimal, karena epoch menjadi key di RTDB.                                        |
 | **Polaritas batt.i** | Pastikan sensor arus Anda dikonfigurasi agar nilai **negatif saat discharge**. Jika terbalik, ubah tanda di pembacaan sensor, bukan di kode pengiriman.      |
 | **Retry WiFi**       | Loop memeriksa `WiFi.status()` setiap iterasi. Jika putus, `connectWiFi()` dipanggil ulang. Data selama putus koneksi akan hilang (tidak ada antrian lokal). |
-| **NTP**              | `configTime(0, 0, ...)` menggunakan offset 0 (UTC). Offset WIB dihitung manual di `getDateWib()` agar epoch yang tersimpan di RTDB selalu UTC.               |
+| **NTP**              | `configTime(0, 0, ...)` menggunakan offset 0 (UTC). Offset WITA dihitung manual di `getDateWita()` agar epoch yang tersimpan di RTDB selalu UTC.             |
 | **HTTP PUT vs PUSH** | `http.PUT()` pada path spesifik `epoch` menjamin epoch menjadi key. Jangan gunakan `http.POST()` ke `/history/{date}` karena Firebase akan membuat key acak. |
 
 ---
@@ -1040,11 +1040,13 @@ curl -X PUT \
 
 Kelima titik di atas merepresentasikan:
 
-- `1749902400` — pukul ~01:00 WIB (malam, tidak ada matahari, angin lemah, baterai discharge ke beban kecil)
-- `1749910800` — pukul ~03:00 WIB (dini hari, irradiansi mulai ada, baterai charging)
-- `1749920400` — pukul ~11:00 WIB (puncak produksi siang, baterai discharge ke beban besar)
-- `1749931200` — pukul ~14:00 WIB (siang, baterai charging menuju penuh)
-- `1749945600` — pukul ~18:00 WIB (malam, tidak ada matahari, baterai discharge ke beban malam)
+- `1749902400` — pukul ~01:00 WITA (malam, tidak ada matahari, angin lemah, baterai discharge ke beban kecil)
+- `1749910800` — pukul ~03:00 WITA (dini hari, irradiansi mulai ada, baterai charging)
+- `1749920400` — pukul ~11:00 WITA (puncak produksi siang, baterai charging ke penuh)
+- `1749931200` — pukul ~14:00 WITA (siang, baterai charging menuju penuh)
+- `1749945600` — pukul ~18:00 WITA (malam, tidak ada matahari, baterai discharge ke beban malam)
+
+> **Mengisi history otomatis (tanpa ESP32):** untuk demo/testing, jalankan skrip simulator yang menulis `/live` tiap beberapa detik **dan** `/history/{date}/{epoch}` tiap 1–2 menit (meniru perilaku ESP32). Web **tidak pernah** menulis ke RTDB — pengisian `/history` selalu dari sisi device/simulator. Lihat README bagian **Testing tanpa ESP32**.
 
 ---
 
@@ -1054,7 +1056,7 @@ Kelima titik di atas merepresentasikan:
 | ------------------------------------ | ------------------------------------------------------------------------------------- |
 | ESP32 tidak muncul di RTDB           | Periksa `DB_SECRET`, RTDB URL, dan Security Rules                                     |
 | Badge Offline terus muncul           | Field `ts` tidak diperbarui atau nilai `ts` tidak akurat (cek NTP)                    |
-| Data history masuk tanggal salah     | Periksa fungsi `getDateWib()` — pastikan offset UTC+7 diterapkan                      |
+| Data history masuk tanggal salah     | Periksa fungsi `getDateWita()` — pastikan offset UTC+8 diterapkan                     |
 | Nilai `batt.soc` ditolak Zod         | Nilai harus antara 0–100 (inklusif), bukan di luar rentang                            |
 | Field terenkripsi di Firestore rusak | Jangan edit manual — hanya edit via admin panel atau `PUT /api/admin/firebase-config` |
 | Dashboard tidak bisa baca Firestore  | Normal dan diharapkan — Firestore hanya dibaca via API routes server                  |

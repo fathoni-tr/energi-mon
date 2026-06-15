@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
+import { getDatabase, ref, get } from "firebase/database";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,22 +16,88 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { mockHistory } from "@/lib/mock-data";
+import { getFirebaseApp } from "@/lib/firebase/client";
+import { HistoryPointSchema } from "@/lib/firebase/validators/telemetry";
+import type { HistoryPoint } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
 
+const MAX_RANGE_DAYS = 31;
+
+/** Tanggal "YYYY-MM-DD" hari ini di WITA (UTC+8, lokasi Sabu Raijua). */
+function todayWita(): string {
+  return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+/** Semua tanggal "YYYY-MM-DD" dalam rentang [from, to] inklusif. */
+function datesInRange(from: string, to: string): string[] {
+  const out: string[] = [];
+  const d = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  while (d <= end && out.length < MAX_RANGE_DAYS) {
+    out.push(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
+}
+
 export default function HistorisPage() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayWita();
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(today);
+  const [data, setData] = useState<HistoryPoint[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = mockHistory.filter((h) => {
-    const d = new Date(h.epoch * 1000).toISOString().split("T")[0];
-    return d >= dateFrom && d <= dateTo;
-  });
+  useEffect(() => {
+    if (dateFrom > dateTo) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+
+    async function fetchRange() {
+      setLoading(true);
+      try {
+        const app = await getFirebaseApp();
+        if (cancelled) return;
+        const db = getDatabase(app);
+        const points: HistoryPoint[] = [];
+
+        for (const date of datesInRange(dateFrom, dateTo)) {
+          const snap = await get(ref(db, `history/${date}`));
+          if (cancelled) return;
+          if (!snap.exists()) continue;
+          const raw = snap.val() as Record<string, unknown>;
+          for (const [epochKey, value] of Object.entries(raw)) {
+            const parsed = HistoryPointSchema.safeParse({
+              epoch: Number(epochKey),
+              ...(value as object),
+            });
+            if (parsed.success) points.push(parsed.data);
+          }
+        }
+
+        points.sort((a, b) => a.epoch - b.epoch);
+        if (!cancelled) setData(points);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("[HistorisPage]", err);
+          toast.error("Gagal memuat data historis");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchRange();
+    return () => {
+      cancelled = true;
+    };
+  }, [dateFrom, dateTo]);
 
   function exportCsv() {
     const header = "Waktu,PLTS (W),PLTB (W),Baterai (W),SOC (%),Beban (W)\n";
-    const rows = filtered
+    const rows = data
       .map((h) =>
         [
           new Date(h.epoch * 1000).toISOString(),
@@ -50,7 +117,7 @@ export default function HistorisPage() {
     a.click();
     URL.revokeObjectURL(url);
     toast.success("CSV diunduh", {
-      description: `${filtered.length} titik data diekspor.`,
+      description: `${data.length} titik data diekspor.`,
     });
   }
 
@@ -67,7 +134,7 @@ export default function HistorisPage() {
               size="sm"
               onClick={exportCsv}
               className="gap-2"
-              disabled={filtered.length === 0}
+              disabled={data.length === 0}
             >
               <Download className="h-4 w-4" />
               Export CSV
@@ -98,7 +165,9 @@ export default function HistorisPage() {
             </div>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            {filtered.length} titik data
+            {loading
+              ? "Memuat data dari Firebase..."
+              : `${data.length} titik data (waktu WITA, maks ${MAX_RANGE_DAYS} hari)`}
           </p>
         </CardContent>
       </Card>
@@ -108,7 +177,11 @@ export default function HistorisPage() {
           <CardTitle>Data</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              Memuat...
+            </p>
+          ) : data.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
               Tidak ada data pada rentang yang dipilih.
             </p>
@@ -125,7 +198,7 @@ export default function HistorisPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.slice(-200).map((h) => (
+                {data.slice(-200).map((h) => (
                   <TableRow key={h.epoch}>
                     <TableCell className="metric text-xs text-muted-foreground">
                       {new Date(h.epoch * 1000).toLocaleString("id-ID", {

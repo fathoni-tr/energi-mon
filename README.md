@@ -61,7 +61,7 @@ Cloud Firestore  (baca/tulis via Admin SDK, tidak pernah dari client langsung)
 
 ## Prasyarat
 
-- **Node.js >= 18** atau **Bun** (direkomendasikan)
+- **Node.js >= 22** atau **Bun** (direkomendasikan)
 - **Akun Firebase** dengan project yang sudah mengaktifkan:
   - Authentication (Email/Password)
   - Realtime Database
@@ -154,6 +154,85 @@ bun run dev
 
 Buka [http://localhost:3000](http://localhost:3000) untuk dashboard publik, atau [http://localhost:3000/admin/login](http://localhost:3000/admin/login) untuk login admin.
 
+### 7. (Opsional) Testing tanpa ESP32 — Simulator
+
+Belum punya ESP32? Jalankan simulator berikut (PowerShell, Windows) untuk mengisi data secara terus-menerus. Skrip ini menulis `/live` tiap 5 detik **dan** `/history/{date}/{epoch}` tiap 2 menit — meniru perilaku ESP32, dengan zona waktu **WITA (UTC+8)** dan konvensi baterai yang benar (`batt_p > 0` = pengisian).
+
+> Web tidak pernah menulis ke RTDB. Simulator ini berdiri sebagai pengganti ESP32, bukan bagian dari aplikasi web.
+
+Ambil `Database Secret` dari Firebase Console → Project Settings → Service accounts → Database secrets.
+
+```powershell
+$DB  = "https://<PROJECT>-default-rtdb.asia-southeast1.firebasedatabase.app"  # RTDB URL
+$SEC = "<DATABASE_SECRET>"
+
+$soc = 70.0
+$lastHistory = 0
+
+function Put-Rtdb($path, $obj) {
+  $json = $obj | ConvertTo-Json -Compress
+  Invoke-RestMethod -Method Put -Uri "$DB/$path.json?auth=$SEC" -ContentType "application/json" -Body $json | Out-Null
+}
+
+while ($true) {
+  $nowUtc = [DateTimeOffset]::UtcNow
+  $ts   = [int]$nowUtc.ToUnixTimeSeconds()
+  $wita = $nowUtc.AddHours(8)            # WITA = UTC+8
+  $hour = $wita.Hour + $wita.Minute / 60.0
+
+  if ($hour -ge 6 -and $hour -le 18) { $solar = [Math]::Sin((($hour - 6) / 12.0) * [Math]::PI) } else { $solar = 0.0 }
+
+  $plts_p    = [int][Math]::Round($solar * 1100 + (Get-Random -Min 0 -Max 40))
+  $plts_v    = if ($plts_p -gt 0) { [Math]::Round(46 + (Get-Random -Min 0 -Max 40) / 10.0, 1) } else { 0.0 }
+  $plts_i    = if ($plts_v -gt 0) { [Math]::Round($plts_p / $plts_v, 1) } else { 0.0 }
+  $plts_irr  = [int][Math]::Round($solar * 950)
+  $plts_temp = [Math]::Round(28 + $solar * 20, 1)
+
+  $pltb_p    = [int](Get-Random -Min 60 -Max 200)
+  $pltb_v    = [Math]::Round(22 + (Get-Random -Min 0 -Max 40) / 10.0, 1)
+  $pltb_i    = [Math]::Round($pltb_p / $pltb_v, 1)
+  $pltb_wind = [Math]::Round((Get-Random -Min 30 -Max 80) / 10.0, 1)
+  $pltb_rpm  = [int]($pltb_p * 1.6)
+
+  if ($hour -ge 18 -or $hour -lt 6) { $load_p = [int](Get-Random -Min 500 -Max 760) } else { $load_p = [int](Get-Random -Min 350 -Max 620) }
+  $load_v = [Math]::Round(218 + (Get-Random -Min 0 -Max 60) / 10.0, 1)
+  $load_i = [Math]::Round($load_p / $load_v, 1)
+
+  $net = $plts_p + $pltb_p - $load_p          # >0 = surplus (charge), <0 = defisit (discharge)
+  $soc = [Math]::Max(10, [Math]::Min(100, $soc + $net / 90000.0 * 5))
+  $batt_v = [Math]::Round(48 + ($soc / 100.0) * 6, 1)
+  $batt_i = [Math]::Round($net / $batt_v, 1)  # + = charge, - = discharge
+  $p_in   = if ($net -ge 0) { [int]$net } else { 0 }
+  $p_out  = if ($net -lt 0) { [int](-$net) } else { 0 }
+
+  Put-Rtdb "live" @{
+    ts   = $ts
+    plts = @{ v = $plts_v; i = $plts_i; p = $plts_p; irr = $plts_irr; temp = $plts_temp }
+    pltb = @{ v = $pltb_v; i = $pltb_i; p = $pltb_p; wind = $pltb_wind; rpm = $pltb_rpm }
+    batt = @{ v = $batt_v; i = $batt_i; p_in = $p_in; p_out = $p_out; soc = [Math]::Round($soc, 1) }
+    load = @{ v = $load_v; i = $load_i; p = $load_p }
+    sys  = @{ mode = "auto"; status = "normal" }
+  }
+  Write-Host ("{0} WITA  gen {1}W  beban {2}W  SOC {3}%" -f $wita.ToString("HH:mm:ss"), ($plts_p + $pltb_p), $load_p, [Math]::Round($soc, 1))
+
+  if ($ts - $lastHistory -ge 120) {
+    $lastHistory = $ts
+    $date = $wita.ToString("yyyy-MM-dd")
+    Put-Rtdb "history/$date/$ts" @{
+      plts_p = $plts_p; plts_irr = $plts_irr; plts_temp = $plts_temp
+      pltb_p = $pltb_p; pltb_wind = $pltb_wind; pltb_rpm = $pltb_rpm
+      batt_p = $net; batt_soc = [Math]::Round($soc, 1); batt_v = $batt_v; batt_i = $batt_i
+      load_p = $load_p
+    }
+    Write-Host "  -> history/$date/$ts tersimpan"
+  }
+
+  Start-Sleep -Seconds 5
+}
+```
+
+Hentikan dengan `Ctrl+C`. Halaman **Data Historis** dan grafik 24 jam akan terisi seiring waktu.
+
 ---
 
 ## Deploy ke Vercel
@@ -224,7 +303,7 @@ src/
 - **Firebase config tidak ada di environment variables build-time.** Config disimpan terenkripsi (AES-256-GCM) di Firestore dan diserve ke client via `GET /api/firebase-config` yang decrypt di server. Tidak ada `NEXT_PUBLIC_FIREBASE_*` di codebase ini.
 - **Admin SDK hanya berjalan di server.** File `src/lib/firebase/admin.ts` menggunakan `import "server-only"` sehingga tidak bisa masuk ke client bundle.
 - **Custom claim `admin:true` wajib** untuk akses halaman dan API admin. Claim di-set via script `set-admin-claim.ts` menggunakan Admin SDK, tidak bisa di-set dari client.
-- **Web tidak pernah menulis ke RTDB.** Dashboard hanya membaca (`onValue`, `get`). Semua tulis ke RTDB dilakukan oleh ESP32.
+- **Web tidak pernah menulis ke RTDB.** Dashboard hanya membaca (`onValue`, `get`). Semua tulis ke RTDB dilakukan oleh ESP32 (atau simulator saat testing — lihat **Testing tanpa ESP32**).
 - **Semua input divalidasi Zod** di API routes sebelum menyentuh database.
 - **Middleware** melakukan cek struktural token JWT di edge sebelum request masuk ke handler. Verifikasi kriptografis penuh (`verifyIdToken`) dilakukan di masing-masing API route via Admin SDK.
 

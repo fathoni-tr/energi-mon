@@ -1,8 +1,11 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Database, Bell, FileText, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockReports, mockContacts, mockThresholds } from "@/lib/mock-data";
+import type { IssueReport, ContactPerson, AlarmThreshold } from "@/lib/types";
 
 const cards = [
   {
@@ -32,9 +35,45 @@ const cards = [
 ];
 
 export default function AdminOverviewPage() {
-  const openReports = mockReports.filter((r) => r.status !== "resolved").length;
-  const activeContacts = mockContacts.filter((c) => c.isActive).length;
-  const enabledThresholds = mockThresholds.filter((t) => t.enabled).length;
+  const [openReports, setOpenReports] = useState<number | null>(null);
+  const [activeContacts, setActiveContacts] = useState<number | null>(null);
+  const [enabledThresholds, setEnabledThresholds] = useState<number | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const [repRes, conRes, thrRes] = await Promise.all([
+          fetch("/api/admin/reports"),
+          fetch("/api/admin/contacts"),
+          fetch("/api/admin/thresholds"),
+        ]);
+        if (cancelled) return;
+        if (repRes.ok) {
+          const reports = (await repRes.json()) as IssueReport[];
+          setOpenReports(reports.filter((r) => r.status !== "resolved").length);
+        }
+        if (conRes.ok) {
+          const contacts = (await conRes.json()) as ContactPerson[];
+          setActiveContacts(contacts.filter((c) => c.isActive).length);
+        }
+        if (thrRes.ok) {
+          const thresholds = (await thrRes.json()) as AlarmThreshold[];
+          setEnabledThresholds(thresholds.filter((t) => t.enabled).length);
+        }
+      } catch {
+        /* abaikan — badge menampilkan "–" jika gagal */
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const fmt = (n: number | null) => (n === null ? "–" : n);
 
   return (
     <div className="space-y-6">
@@ -50,15 +89,15 @@ export default function AdminOverviewPage() {
       <div className="flex flex-wrap gap-3">
         <Badge variant="warning" className="gap-1">
           <FileText className="h-3 w-3" />
-          {openReports} laporan terbuka
+          {fmt(openReports)} laporan terbuka
         </Badge>
         <Badge variant="default" className="gap-1">
           <Users className="h-3 w-3" />
-          {activeContacts} contact aktif
+          {fmt(activeContacts)} contact aktif
         </Badge>
         <Badge variant="outline" className="gap-1">
           <Bell className="h-3 w-3" />
-          {enabledThresholds} threshold aktif
+          {fmt(enabledThresholds)} threshold aktif
         </Badge>
       </div>
 

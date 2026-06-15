@@ -19,9 +19,9 @@ function downsample(points: HistoryPoint[], maxPoints: number): HistoryPoint[] {
   );
 }
 
-/** Tanggal dalam format "YYYY-MM-DD" (WIB = UTC+7). */
-function todayWib(): string {
-  const now = new Date(Date.now() + 7 * 3600 * 1000);
+/** Tanggal dalam format "YYYY-MM-DD" (WITA = UTC+8, lokasi Sabu Raijua). */
+function todayWita(): string {
+  const now = new Date(Date.now() + 8 * 3600 * 1000);
   return now.toISOString().slice(0, 10);
 }
 
@@ -40,7 +40,7 @@ export function useHistory(date?: string): HistoryState {
 
   useEffect(() => {
     let cancelled = false;
-    const targetDate = date ?? todayWib();
+    const targetDate = date ?? todayWita();
 
     async function fetchHistory() {
       try {

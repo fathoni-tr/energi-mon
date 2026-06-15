@@ -1,25 +1,32 @@
+"use client";
+
 import { StatCard } from "@/components/dashboard/StatCard";
 import { BatteryPanel } from "@/components/dashboard/BatteryPanel";
 import { MetricTrendChart } from "@/components/charts/MetricTrendChart";
 import { mockLiveData, mockHistory, mockThresholds } from "@/lib/mock-data";
 import { CHART_COLORS } from "@/lib/colors";
 import { peak, low, todayPoints, batteryEnergy } from "@/lib/analytics";
+import { useLiveData } from "@/lib/firebase/hooks/useLiveData";
+import { useHistory } from "@/lib/firebase/hooks/useHistory";
 
 const COLOR = CHART_COLORS.batt;
 
 export default function BateraiPage() {
-  const live = mockLiveData.batt;
-  const history = mockHistory;
+  const liveState = useLiveData();
+  const historyState = useHistory();
+  const live = (liveState.data ?? mockLiveData).batt;
+  const history =
+    historyState.data.length > 0 ? historyState.data : mockHistory;
   const today = todayPoints(history);
   const socMin =
     mockThresholds.find((t) => t.metric === "soc_min")?.value ?? 20;
 
-  // Konvensi: batt_p < 0 = pengisian (charge), batt_p > 0 = pengosongan.
+  // Konvensi: batt_p > 0 = pengisian (charge), batt_p < 0 = pengosongan (discharge).
   const { chargeKwh, dischargeKwh } = batteryEnergy(today);
   const powerData = history.map((h) => ({
     epoch: h.epoch,
-    charge: Math.max(0, -h.batt_p),
-    discharge: Math.max(0, h.batt_p),
+    charge: Math.max(0, h.batt_p),
+    discharge: Math.max(0, -h.batt_p),
   }));
 
   return (

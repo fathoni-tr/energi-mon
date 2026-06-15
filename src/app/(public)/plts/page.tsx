@@ -1,3 +1,5 @@
+"use client";
+
 import { StatCard } from "@/components/dashboard/StatCard";
 import { MetricTrendChart } from "@/components/charts/MetricTrendChart";
 import { mockLiveData, mockHistory, mockThresholds } from "@/lib/mock-data";
@@ -9,13 +11,18 @@ import {
   capacityFactor,
   todayPoints,
 } from "@/lib/analytics";
+import { useLiveData } from "@/lib/firebase/hooks/useLiveData";
+import { useHistory } from "@/lib/firebase/hooks/useHistory";
 
 const COLOR = CHART_COLORS.plts;
 const RATED_W = 1500;
 
 export default function PltsPage() {
-  const live = mockLiveData.plts;
-  const history = mockHistory;
+  const liveState = useLiveData();
+  const historyState = useHistory();
+  const live = (liveState.data ?? mockLiveData).plts;
+  const history =
+    historyState.data.length > 0 ? historyState.data : mockHistory;
   const today = todayPoints(history);
   const tempMax =
     mockThresholds.find((t) => t.metric === "panel_temp_max")?.value ?? 65;

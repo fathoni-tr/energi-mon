@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageSquarePlus, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { mockContacts, CATEGORY_LABELS } from "@/lib/mock-data";
+import { CATEGORY_LABELS } from "@/lib/mock-data";
 import type { IssueReport } from "@/lib/types";
 
 type Category = IssueReport["category"];
+type PublicContact = { id: string; name: string; role: string; phone: string };
 
 const CATEGORIES: { value: Category; label: string }[] = [
   { value: "data_not_updating", label: CATEGORY_LABELS.data_not_updating },
@@ -37,6 +38,8 @@ const CATEGORIES: { value: Category; label: string }[] = [
 export function ReportIssueModal() {
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [contacts, setContacts] = useState<PublicContact[]>([]);
   const [form, setForm] = useState({
     reporterName: "",
     reporterContact: "",
@@ -45,9 +48,22 @@ export function ReportIssueModal() {
   });
   const [error, setError] = useState("");
 
-  const activeContacts = mockContacts.filter((c) => c.isActive);
+  // Ambil contact person aktif dari Firestore (via API publik) saat modal dibuka.
+  useEffect(() => {
+    if (!open || contacts.length > 0) return;
+    let cancelled = false;
+    fetch("/api/contacts")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => {
+        if (!cancelled) setContacts(Array.isArray(d) ? d : []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open, contacts.length]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (form.description.trim().length < 10) {
       setError("Deskripsi minimal 10 karakter.");
@@ -58,10 +74,35 @@ export function ReportIssueModal() {
       return;
     }
     setError("");
-    setSubmitted(true);
-    toast.success("Laporan terkirim", {
-      description: "Tim operasi akan menindaklanjuti laporan Anda.",
-    });
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reporterName: form.reporterName.trim() || null,
+          reporterContact: form.reporterContact.trim() || null,
+          category: form.category,
+          description: form.description.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(data.error ?? "Gagal mengirim laporan");
+      }
+      setSubmitted(true);
+      toast.success("Laporan terkirim", {
+        description: "Tim operasi akan menindaklanjuti laporan Anda.",
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Gagal mengirim laporan";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function handleOpen(v: boolean) {
@@ -173,7 +214,9 @@ export function ReportIssueModal() {
                   >
                     Batal
                   </Button>
-                  <Button type="submit">Kirim Laporan</Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? "Mengirim..." : "Kirim Laporan"}
+                  </Button>
                 </div>
               </form>
             </>
@@ -186,13 +229,13 @@ export function ReportIssueModal() {
                 </DialogDescription>
               </DialogHeader>
 
-              {activeContacts.length > 0 && (
+              {contacts.length > 0 && (
                 <div className="mt-4 space-y-3">
                   <p className="text-sm font-medium text-foreground">
                     Hubungi langsung:
                   </p>
                   <Separator />
-                  {activeContacts.map((cp) => (
+                  {contacts.map((cp) => (
                     <div
                       key={cp.id}
                       className="flex items-center justify-between"

@@ -1,3 +1,5 @@
+"use client";
+
 import { StatCard } from "@/components/dashboard/StatCard";
 import { MetricTrendChart } from "@/components/charts/MetricTrendChart";
 import { mockLiveData, mockHistory } from "@/lib/mock-data";
@@ -9,13 +11,18 @@ import {
   capacityFactor,
   todayPoints,
 } from "@/lib/analytics";
+import { useLiveData } from "@/lib/firebase/hooks/useLiveData";
+import { useHistory } from "@/lib/firebase/hooks/useHistory";
 
 const COLOR = CHART_COLORS.pltb;
 const RATED_W = 350;
 
 export default function PltbPage() {
-  const live = mockLiveData.pltb;
-  const history = mockHistory;
+  const liveState = useLiveData();
+  const historyState = useHistory();
+  const live = (liveState.data ?? mockLiveData).pltb;
+  const history =
+    historyState.data.length > 0 ? historyState.data : mockHistory;
   const today = todayPoints(history);
 
   return (

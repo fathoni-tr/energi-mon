@@ -24,6 +24,14 @@ const METRIC_LABELS: Record<AlarmThreshold["metric"], string> = {
   wind_max: "Kecepatan Angin Maksimum",
 };
 
+/** Nilai default yang dibuat saat admin pertama kali men-seed threshold. */
+const DEFAULT_THRESHOLDS: Omit<AlarmThreshold, "id">[] = [
+  { metric: "soc_min", value: 20, unit: "%", enabled: true },
+  { metric: "panel_temp_max", value: 75, unit: "°C", enabled: true },
+  { metric: "load_p_max", value: 5000, unit: "W", enabled: true },
+  { metric: "wind_max", value: 20, unit: "m/s", enabled: false },
+];
+
 export default function ThresholdsPage() {
   const [thresholds, setThresholds] = useState<AlarmThreshold[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +75,13 @@ export default function ThresholdsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function seedDefaults() {
+    await saveAll(DEFAULT_THRESHOLDS.map((t) => ({ ...t, id: t.metric })));
+    toast.success("Threshold default ditambahkan", {
+      description: "4 threshold standar dibuat. Silakan sesuaikan nilainya.",
+    });
   }
 
   function startEdit(t: AlarmThreshold) {
@@ -157,9 +172,14 @@ export default function ThresholdsPage() {
             </Card>
           ))}
           {thresholds.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Belum ada threshold. Tambahkan melalui Firestore atau seed awal.
-            </p>
+            <div className="text-center py-8 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Belum ada threshold tersimpan.
+              </p>
+              <Button onClick={seedDefaults} disabled={saving}>
+                {saving ? "Menyimpan..." : "Tambah Threshold Default"}
+              </Button>
+            </div>
           )}
         </div>
       )}

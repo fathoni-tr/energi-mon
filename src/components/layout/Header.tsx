@@ -5,28 +5,26 @@ import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "./ThemeToggle";
 import { SidebarDrawer } from "./SidebarDrawer";
 import { formatDateTime } from "@/lib/utils";
+import { useLiveData } from "@/lib/firebase/hooks/useLiveData";
 
 interface HeaderProps {
   plantName?: string;
+  /** Timestamp awal (mock/SSR) untuk render pertama sebelum listener RTDB aktif. */
   lastTs?: number;
-  /**
-   * Mode mock (frontend-only): badge selalu Online setelah mount.
-   * TODO (fase backend): ganti dengan polling isOffline(lastTs) dari
-   * listener RTDB sehingga status mencerminkan telemetri nyata.
-   */
-  mock?: boolean;
 }
 
 export function Header({
   plantName = "PLMH Sabu Raijua",
   lastTs,
-  mock = true,
 }: HeaderProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const online = mock ? mounted : false;
-  const lastUpdate = lastTs ? formatDateTime(lastTs) : null;
+  const { data, offline, loading } = useLiveData();
+  const ts = data?.ts ?? lastTs;
+  const connecting = !mounted || (loading && data === null);
+  const online = data !== null && !offline;
+  const lastUpdate = ts ? formatDateTime(ts) : null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
@@ -37,7 +35,7 @@ export function Header({
             <span className="text-base font-semibold text-foreground">
               {plantName}
             </span>
-            {!mounted ? (
+            {connecting ? (
               <Badge variant="secondary">Menghubungkan...</Badge>
             ) : (
               <Badge

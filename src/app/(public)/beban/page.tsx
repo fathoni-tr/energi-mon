@@ -1,3 +1,5 @@
+"use client";
+
 import { StatCard } from "@/components/dashboard/StatCard";
 import { MetricTrendChart } from "@/components/charts/MetricTrendChart";
 import { mockLiveData, mockHistory } from "@/lib/mock-data";
@@ -9,12 +11,17 @@ import {
   dailyEnergy,
   todayPoints,
 } from "@/lib/analytics";
+import { useLiveData } from "@/lib/firebase/hooks/useLiveData";
+import { useHistory } from "@/lib/firebase/hooks/useHistory";
 
 const COLOR = CHART_COLORS.load;
 
 export default function BebanPage() {
-  const live = mockLiveData.load;
-  const history = mockHistory;
+  const liveState = useLiveData();
+  const historyState = useHistory();
+  const live = (liveState.data ?? mockLiveData).load;
+  const history =
+    historyState.data.length > 0 ? historyState.data : mockHistory;
   const today = todayPoints(history);
   const energy = dailyEnergy(history);
 
