@@ -34,8 +34,9 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 
-# Claude Code 
+# Claude Code
 .claude/
+openclaw-godmode-skill/
 
 # Editor
 .vscode/
