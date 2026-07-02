@@ -16,7 +16,7 @@ import { useHistory } from "@/lib/firebase/hooks/useHistory";
 
 const COLOR = CHART_COLORS.load;
 
-export default function BebanPage() {
+export default function InverterPage() {
   const liveState = useLiveData();
   const historyState = useHistory();
   const live = (liveState.data ?? mockLiveData).load;
@@ -34,7 +34,7 @@ export default function BebanPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-        Beban
+        Output Inverter
       </h1>
 
       {/* Pembacaan langsung */}
@@ -66,14 +66,14 @@ export default function BebanPage() {
       {/* KPI turunan 24 jam */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
-          label="Beban Puncak"
+          label="Output Puncak"
           value={peak(history, "load_p")}
           unit="W"
           decimals={0}
           sparkColor={COLOR}
         />
         <StatCard
-          label="Beban Rata-rata"
+          label="Output Rata-rata"
           value={average(history, "load_p")}
           unit="W"
           decimals={0}
@@ -97,18 +97,18 @@ export default function BebanPage() {
 
       {/* Grafik 24 jam */}
       <MetricTrendChart
-        title="Konsumsi Beban 24 Jam"
+        title="Output Inverter 24 Jam"
         data={history}
-        series={[{ key: "load_p", name: "Beban", color: COLOR }]}
+        series={[{ key: "load_p", name: "Output Inverter", color: COLOR }]}
         unit="W"
         height={288}
       />
 
       <MetricTrendChart
-        title="Beban vs Pembangkitan 24 Jam"
+        title="Output Inverter vs Pembangkitan 24 Jam"
         data={compareData}
         series={[
-          { key: "load_p", name: "Beban", color: CHART_COLORS.load },
+          { key: "load_p", name: "Output Inverter", color: CHART_COLORS.load },
           { key: "gen", name: "Pembangkitan", color: CHART_COLORS.batt },
         ]}
         unit="W"

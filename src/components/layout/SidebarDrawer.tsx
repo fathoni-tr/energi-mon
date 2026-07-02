@@ -29,7 +29,7 @@ const publicNav = [
   { href: "/plts", label: "PLTS (Surya)", icon: Sun },
   { href: "/pltb", label: "PLTB (Angin)", icon: Wind },
   { href: "/baterai", label: "Baterai", icon: Battery },
-  { href: "/beban", label: "Beban", icon: Zap },
+  { href: "/inverter", label: "Output Inverter", icon: Zap },
 ];
 
 interface SidebarDrawerProps {
