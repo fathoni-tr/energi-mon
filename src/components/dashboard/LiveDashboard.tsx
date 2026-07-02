@@ -64,7 +64,7 @@ export function LiveDashboard({
           sparkColor={CHART_COLORS.batt}
         />
         <StatCard
-          label="Total Beban"
+          label="Output Inverter"
           value={live.load.p}
           unit="W"
           decimals={0}

@@ -121,7 +121,7 @@ export function TrendDayaChart({ data }: TrendDayaChartProps) {
               <Line
                 type="monotone"
                 dataKey="load_p"
-                name="Beban"
+                name="Output Inverter"
                 stroke={CHART_COLORS.load}
                 strokeWidth={2.5}
                 dot={false}

@@ -110,7 +110,7 @@ export function PowerFlowPanel({ data }: PowerFlowPanelProps) {
 
           <FlowNode
             icon={Zap}
-            label="Beban"
+            label="Output Inverter"
             power={data.load.p}
             color={CHART_COLORS.load}
           />
