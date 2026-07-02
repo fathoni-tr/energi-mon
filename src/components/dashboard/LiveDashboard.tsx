@@ -38,6 +38,8 @@ export function LiveDashboard({
   const genSpark = buildSpark(history.map((h) => h.plts_p + h.pltb_p));
   const loadSpark = buildSpark(history.map((h) => h.load_p));
   const socSpark = buildSpark(history.map((h) => h.batt_soc));
+  const irrSpark = buildSpark(history.map((h) => h.plts_irr));
+  const windSpark = buildSpark(history.map((h) => h.pltb_wind));
   const energy = dailyEnergy(history);
   const totalGen = live.plts.p + live.pltb.p;
 
@@ -53,7 +55,7 @@ export function LiveDashboard({
       )}
 
       {/* KPI inti */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3">
         <StatCard
           label="Total Pembangkitan"
           value={totalGen}
@@ -89,6 +91,24 @@ export function LiveDashboard({
           decimals={0}
           icon="gauge"
           sparkColor={CHART_COLORS.batt}
+        />
+        <StatCard
+          label="Radiasi Matahari"
+          value={live.plts.irr}
+          unit="W/m²"
+          decimals={0}
+          icon="sun"
+          spark={irrSpark}
+          sparkColor={CHART_COLORS.plts}
+        />
+        <StatCard
+          label="Kecepatan Angin"
+          value={live.pltb.wind}
+          unit="m/s"
+          decimals={1}
+          icon="wind"
+          spark={windSpark}
+          sparkColor={CHART_COLORS.pltb}
         />
       </div>
 
